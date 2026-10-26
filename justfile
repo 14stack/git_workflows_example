@@ -369,6 +369,14 @@ images-publish version:
       docker buildx bake --push \
       --set "*.attest=type=sbom" --set "*.attest=type=provenance,mode=max"
 
+# Preview the release PR release-please would open for main (needs GITHUB_TOKEN; changes nothing)
+[group('release')]
+release-preview:
+    npx --yes release-please@17.11.2 release-pr --dry-run \
+      --token="${GITHUB_TOKEN:?set GITHUB_TOKEN to a token that can read the repository}" \
+      --repo-url=14stack/git_workflows_example --target-branch=main \
+      --config-file=release-please-config.json --manifest-file=.release-please-manifest.json
+
 # Export CycloneDX SBOMs of published images to artifacts/sbom (registry auth: TRIVY_USERNAME/TRIVY_PASSWORD)
 [group('release')]
 images-sbom version:

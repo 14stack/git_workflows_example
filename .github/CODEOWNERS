@@ -1,0 +1,10 @@
+# Default owners for everything in the repository.
+# Add per-area owners below as the team grows, e.g.:
+#   /apps/jobs-api/   @org/backend
+#   /apps/web/        @org/frontend
+*                     @14stack
+
+# Changes to CI, release automation and security configuration always need an owner's review.
+/.github/             @14stack
+/justfile             @14stack
+/release-please-config.json  @14stack
