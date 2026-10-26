@@ -3,7 +3,7 @@
 import logging
 import signal
 import sys
-import time
+import threading
 from types import FrameType
 
 from pika.exceptions import AMQPConnectionError
@@ -33,25 +33,24 @@ def main() -> int:
     handler = JobHandler(repository, simulated_delay_seconds=settings.simulated_delay_seconds)
     consumer = Consumer(settings.rabbitmq_url, settings.prefetch_count, handler)
 
-    stopping = False
+    stop = threading.Event()
 
     def request_stop(signum: int, _frame: FrameType | None) -> None:
-        nonlocal stopping
         logger.info("Received %s, shutting down", signal.Signals(signum).name)
-        stopping = True
+        stop.set()
         consumer.stop()
 
     signal.signal(signal.SIGTERM, request_stop)
     signal.signal(signal.SIGINT, request_stop)
 
     backoff = 1.0
-    while not stopping:
+    while not stop.is_set():
         try:
             consumer.run()
             backoff = 1.0
         except AMQPConnectionError:
             logger.warning("RabbitMQ unavailable, retrying in %.0fs", backoff)
-            time.sleep(backoff)
+            stop.wait(backoff)  # returns early on SIGTERM
             backoff = min(backoff * 2, MAX_BACKOFF_SECONDS)
 
     repository.close()

@@ -96,9 +96,12 @@ class Consumer:
             logger.info("Consuming from %s", topology.WORKER_QUEUE)
             self._channel.start_consuming()
         finally:
-            if connection.is_open:
+            # pika's `is_open` is a property, not a method.
+            if connection.is_open:  # nosemgrep: is-function-without-parentheses
                 connection.close()
 
     def stop(self) -> None:
+        # pika's `is_open` is a property, not a method.
+        # nosemgrep: is-function-without-parentheses
         if self._channel is not None and self._channel.is_open:
             self._channel.stop_consuming()
