@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
-# Base images are literal (no ARG) so Dependabot can keep them up to date.
+# Base images are pinned by tag + digest (reproducible builds); Dependabot bumps both.
 
 # ---------------------------------------------------------------------------
-FROM python:3.13-slim AS build
+FROM python:3.13-slim@sha256:d98cc29d3266e535dd9da1099688d9cb3ca4753813571e071763d17725460962 AS build
 # Pinned uv; installed from PyPI so the build only needs one package index.
 RUN pip install --no-cache-dir uv==0.11.32
 ENV UV_COMPILE_BYTECODE=1 \
@@ -18,7 +18,7 @@ COPY src/ src/
 RUN uv sync --locked --no-dev --no-editable
 
 # ---------------------------------------------------------------------------
-FROM python:3.13-slim AS runtime
+FROM python:3.13-slim@sha256:d98cc29d3266e535dd9da1099688d9cb3ca4753813571e071763d17725460962 AS runtime
 # pip is not needed at runtime and its vendored libraries are a recurring source of CVEs.
 RUN python -m pip uninstall --yes --quiet pip \
  && groupadd --system --gid 10001 worker \
