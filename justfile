@@ -337,7 +337,7 @@ security-images: images-build
     mkdir -p "{{ artifacts }}/security" "{{ artifacts }}/images" "{{ trivy_cache }}"
     status=0
     echo "── Dockerfiles"
-    {{ trivy }} config apps --severity {{ trivy_severity }} --exit-code 1 || status=1
+    {{ trivy }} config apps {{ trivy_skip_dirs }} --severity {{ trivy_severity }} --exit-code 1 || status=1
     for image in {{ images }}; do
       echo "── Image ${image}"
       docker save "{{ registry }}/${image}:dev" -o "{{ artifacts }}/images/${image}.tar"

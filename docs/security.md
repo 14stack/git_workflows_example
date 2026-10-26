@@ -25,6 +25,9 @@ as a pre-commit hook.
 - **Semgrep** runs the `p/default`, `p/csharp`, `p/python`, `p/typescript` and `p/dockerfile`
   rulesets with metrics disabled. The registry rules are free to use (Semgrep Rules License).
   [Opengrep](https://github.com/opengrep/opengrep) is a drop-in fork if you prefer fully open rules.
+- **NuGet audit** also runs on every `dotnet restore` (`<NuGetAudit>` in
+  `Directory.Build.props`). Warnings are errors, so a newly disclosed vulnerable package
+  fails the .NET build before the nightly Trivy scan runs.
 - **Trivy (dependencies)** reads `packages.lock.json` and `Directory.Packages.props` (NuGet),
   `uv.lock` and `package-lock.json`. Development-only dependencies are excluded by default;
   add `--include-dev-deps` to the recipe to include them.
