@@ -1,0 +1,80 @@
+name: Release · Publish Images
+
+# Builds all images from a release tag, pushes them to GHCR with SBOM + SLSA provenance
+# attestations, and attaches CycloneDX SBOMs to the GitHub Release.
+# Called by "Release · Release Please"; can also be run manually to re-publish a tag.
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Release tag to publish, e.g. v1.4.0
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to (re-)publish, e.g. v1.4.0
+        type: string
+        required: true
+
+permissions: {}
+
+concurrency:
+  group: release-publish-images-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build, push and attach SBOMs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: write # upload SBOMs to the release
+      packages: write # push to ghcr.io
+    env:
+      TAG: ${{ inputs.tag }}
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag }}
+          persist-credentials: false
+
+      - name: Validate tag and derive version
+        id: version
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::'$TAG' is not a release tag (expected vX.Y.Z)"
+            exit 1
+          fi
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Install just
+        uses: ./.github/actions/setup-just
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push images
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: just images-publish "$VERSION"
+
+      - name: Generate SBOMs
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: just images-sbom "$VERSION"
+
+      - name: Attach SBOMs to the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$TAG" artifacts/sbom/*.cdx.json --clobber --repo "$GITHUB_REPOSITORY"

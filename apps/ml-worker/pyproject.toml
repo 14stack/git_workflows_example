@@ -1,7 +1,7 @@
 [project]
 name = "ml-worker"
 # Product version: managed by release-please, do not edit by hand.
-version = "0.1.0"
+version = "0.0.0"
 description = "Consumes job.requested messages, trains a scikit-learn classifier and records the result."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
