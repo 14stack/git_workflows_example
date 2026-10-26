@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
-ARG PYTHON_VERSION=3.13
+# Base images are literal (no ARG) so Dependabot can keep them up to date.
 
 # ---------------------------------------------------------------------------
-FROM python:${PYTHON_VERSION}-slim AS build
+FROM python:3.13-slim AS build
 # Pinned uv; installed from PyPI so the build only needs one package index.
 RUN pip install --no-cache-dir uv==0.11.32
 ENV UV_COMPILE_BYTECODE=1 \
@@ -18,7 +18,7 @@ COPY src/ src/
 RUN uv sync --locked --no-dev --no-editable
 
 # ---------------------------------------------------------------------------
-FROM python:${PYTHON_VERSION}-slim AS runtime
+FROM python:3.13-slim AS runtime
 # pip is not needed at runtime and its vendored libraries are a recurring source of CVEs.
 RUN python -m pip uninstall --yes --quiet pip \
  && groupadd --system --gid 10001 worker \

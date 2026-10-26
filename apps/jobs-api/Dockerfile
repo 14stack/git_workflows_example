@@ -3,10 +3,11 @@
 # Targets:
 #   runtime   – the Jobs API (default, last stage)
 #   migrator  – EF Core migration bundle, run once by the `db-migrate` compose service
-ARG DOTNET_VERSION=10.0
+#
+# Base images are literal (no ARG) so Dependabot can keep them up to date.
 
 # ---------------------------------------------------------------------------
-FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Restore first, in its own layer, so source edits don't invalidate the package cache.
@@ -23,7 +24,7 @@ RUN dotnet publish src/JobsApi/JobsApi.csproj -c Release -o /out/app --no-restor
  && dotnet ef migrations bundle --project src/JobsApi --configuration Release --no-build -o /out/migrations/efbundle
 
 # ---------------------------------------------------------------------------
-FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}-noble-chiseled AS migrator
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled AS migrator
 WORKDIR /migrations
 COPY --from=build /out/migrations/ ./
 USER $APP_UID
@@ -31,7 +32,7 @@ ENTRYPOINT ["./efbundle"]
 
 # ---------------------------------------------------------------------------
 # Chiseled = distroless Ubuntu: no shell, no package manager, non-root by default.
-FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}-noble-chiseled AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled AS runtime
 WORKDIR /app
 ENV ASPNETCORE_HTTP_PORTS=8080 \
     DOTNET_EnableDiagnostics=0
