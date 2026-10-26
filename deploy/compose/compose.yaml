@@ -1,0 +1,96 @@
+# Local / CI stack. Run it through the root justfile:
+#   just up        build and start everything
+#   just up-wait   ... and block until the API reports ready (used by e2e tests)
+#   just down      stop (keeps data)   ·   just reset   stop and delete volumes
+#
+# Released images can be run without building:
+#   VERSION=1.2.0 docker compose -f deploy/compose/compose.yaml up --no-build
+name: jobs-platform
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-jobs}
+      POSTGRES_USER: ${POSTGRES_USER:-jobs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jobs}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
+
+  # One-shot: applies EF Core migrations, then exits. The API and worker wait for it.
+  db-migrate:
+    image: ${REGISTRY:-ghcr.io/14stack/git_workflows_example}/jobs-api-migrator:${VERSION:-dev}
+    build:
+      context: ../../apps/jobs-api
+      target: migrator
+    command:
+      - --connection
+      - Host=postgres;Port=5432;Database=${POSTGRES_DB:-jobs};Username=${POSTGRES_USER:-jobs};Password=${POSTGRES_PASSWORD:-jobs}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  jobs-api:
+    image: ${REGISTRY:-ghcr.io/14stack/git_workflows_example}/jobs-api:${VERSION:-dev}
+    build:
+      context: ../../apps/jobs-api
+      target: runtime
+    environment:
+      ConnectionStrings__JobsDb: Host=postgres;Port=5432;Database=${POSTGRES_DB:-jobs};Username=${POSTGRES_USER:-jobs};Password=${POSTGRES_PASSWORD:-jobs}
+      RabbitMq__Uri: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/
+    ports:
+      - "${API_PORT:-5080}:8080"
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+
+  ml-worker:
+    image: ${REGISTRY:-ghcr.io/14stack/git_workflows_example}/ml-worker:${VERSION:-dev}
+    build:
+      context: ../../apps/ml-worker
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-jobs}:${POSTGRES_PASSWORD:-jobs}@postgres:5432/${POSTGRES_DB:-jobs}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/
+      WORKER_SIMULATED_DELAY_SECONDS: ${WORKER_SIMULATED_DELAY_SECONDS:-2}
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+
+  web:
+    image: ${REGISTRY:-ghcr.io/14stack/git_workflows_example}/web:${VERSION:-dev}
+    build:
+      context: ../../apps/web
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    depends_on:
+      - jobs-api
+
+volumes:
+  postgres-data:
