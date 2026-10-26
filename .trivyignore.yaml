@@ -1,0 +1,12 @@
+# Accepted Trivy findings. Every entry needs a reason and an expiry date so it gets revisited.
+# Format: https://trivy.dev/latest/docs/configuration/filtering/#trivyignoreyaml
+#
+# vulnerabilities:
+#   - id: CVE-2026-00000
+#     paths:
+#       - "apps/web/package-lock.json"
+#     statement: Not reachable: only used by the dev server.
+#     expired_at: 2026-12-31
+
+vulnerabilities: []
+misconfigurations: []

@@ -1,0 +1,53 @@
+name: Security · SAST (Semgrep)
+
+# Static analysis of our own code (C#, Python, TypeScript, Dockerfiles) with Semgrep Community Edition.
+on:
+  pull_request:
+    paths:
+      - apps/**
+      - justfile
+      - .semgrepignore
+      - .github/workflows/security-sast.yml
+  push:
+    branches: [main]
+    paths:
+      - apps/**
+      - justfile
+      - .semgrepignore
+      - .github/workflows/security-sast.yml
+  schedule:
+    - cron: "23 5 * * 1" # Mondays 05:23 UTC: picks up newly published rules
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  semgrep:
+    name: Run Semgrep
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install just
+        uses: ./.github/actions/setup-just
+
+      - name: Run static analysis
+        run: just security-sast
+
+      - name: Upload report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: security-sast
+          path: artifacts/security/
+          if-no-files-found: ignore
+          retention-days: 30

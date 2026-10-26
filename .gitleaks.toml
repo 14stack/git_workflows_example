@@ -1,0 +1,15 @@
+# Gitleaks configuration: the built-in ruleset plus a narrow allowlist.
+# Prefer fixing over allowlisting: rotate any real secret, then purge it from history.
+# A single false positive can be silenced inline with a `gitleaks:allow` comment, or by
+# adding its fingerprint to .gitleaksignore (see docs/security.md).
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Lockfiles contain integrity hashes, not secrets"
+paths = [
+  '''(^|/)package-lock\.json$''',
+  '''(^|/)uv\.lock$''',
+  '''(^|/)packages\.lock\.json$''',
+]
