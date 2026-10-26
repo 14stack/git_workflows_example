@@ -1,0 +1,87 @@
+[project]
+name = "ml-worker"
+# Product version: managed by release-please, do not edit by hand.
+version = "0.1.0"
+description = "Consumes job.requested messages, trains a scikit-learn classifier and records the result."
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  "pika>=1.4.4",
+  "psycopg[binary]>=3.3.6",
+  "pydantic>=2.14.1",
+  "pydantic-settings>=2.16.1",
+  "scikit-learn>=1.9.1",
+]
+
+[project.scripts]
+ml-worker = "ml_worker.__main__:main"
+
+[dependency-groups]
+dev = [
+  "jsonschema>=4.26.0",
+  "mypy>=2.4.0",
+  "pytest>=9.1.1",
+  "pytest-cov>=7.1.0",
+  "ruff>=0.17.2",
+  "types-jsonschema>=4.26.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.0,<0.12"]
+build-backend = "uv_build"
+
+# ---------------------------------------------------------------------------
+# Tooling
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+  "E", "W", "F",  # pycodestyle + pyflakes
+  "I",            # isort
+  "B",            # bugbear
+  "UP",           # pyupgrade
+  "SIM",          # simplify
+  "N",            # pep8-naming
+  "S",            # bandit (security)
+  "RUF",          # ruff-specific
+  "PT",           # pytest style
+  "C4",           # comprehensions
+  "DTZ",          # timezone-aware datetimes
+  "T20",          # no print()
+  "PL",           # pylint
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "PLR2004"]
+
+[tool.mypy]
+strict = true
+python_version = "3.13"
+mypy_path = "src"
+files = ["src", "tests"]
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+# Neither library ships complete type information.
+module = ["pika.*", "sklearn.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
+addopts = ["--strict-markers", "--strict-config", "-ra"]
+xfail_strict = true
+
+[tool.coverage.run]
+source = ["ml_worker"]
+branch = true
+omit = ["*/ml_worker/__main__.py"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = true
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError"]
