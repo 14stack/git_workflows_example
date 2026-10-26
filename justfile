@@ -34,7 +34,7 @@ trivy_cache := env("TRIVY_CACHE_DIR", env("HOME", "/tmp") / ".cache/trivy")
 #   TOOL_DOCKER_ARGS="-v /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro"
 tool_docker_args := env("TOOL_DOCKER_ARGS", "")
 docker_tool := "docker run --rm --user \"$(id -u):$(id -g)\" -e HOME=/tmp " + tool_docker_args + " -v \"" + root + ":/src\" -w /src"
-trivy := docker_tool + " -e TRIVY_USERNAME -e TRIVY_PASSWORD -e TRIVY_NO_PROGRESS=true -v \"" + trivy_cache + ":/cache\" " + trivy_image + " --cache-dir /cache"
+trivy := docker_tool + " -e TRIVY_USERNAME -e TRIVY_PASSWORD -e TRIVY_NO_PROGRESS=true -e TRIVY_IGNOREFILE=.trivyignore.yaml -v \"" + trivy_cache + ":/cache\" " + trivy_image + " --cache-dir /cache"
 trivy_skip_dirs := "--skip-dirs '**/node_modules' --skip-dirs '**/.venv' --skip-dirs '**/bin' --skip-dirs '**/obj' --skip-dirs artifacts"
 
 # List recipes
@@ -143,11 +143,16 @@ api-build:
 api-format:
     dotnet format JobsApi.slnx
 
+# Check formatting only (fast; used by the pre-commit hook)
+[group('jobs-api')]
+[working-directory('apps/jobs-api')]
+api-format-check:
+    dotnet format JobsApi.slnx --verify-no-changes --verbosity minimal
+
 # Check formatting and build with all analyzers as errors
 [group('jobs-api')]
 [working-directory('apps/jobs-api')]
-api-lint:
-    dotnet format JobsApi.slnx --verify-no-changes --verbosity minimal
+api-lint: api-format-check
     dotnet build JobsApi.slnx -c Release -warnaserror
 
 # Run unit tests with coverage
@@ -201,12 +206,17 @@ worker-format:
     uv run --locked ruff format .
     uv run --locked ruff check --fix .
 
+# Check formatting only (fast; used by the pre-commit hook)
+[group('ml-worker')]
+[working-directory('apps/ml-worker')]
+worker-format-check:
+    uv run --locked ruff format --check .
+
 # Check formatting, lint, types and that uv.lock is up to date
 [group('ml-worker')]
 [working-directory('apps/ml-worker')]
-worker-lint:
+worker-lint: worker-format-check
     uv lock --check
-    uv run --locked ruff format --check .
     uv run --locked ruff check .
     uv run --locked mypy
 
@@ -240,11 +250,16 @@ web-install:
 web-format:
     npx prettier --write .
 
+# Check formatting only (fast; used by the pre-commit hook)
+[group('web')]
+[working-directory('apps/web')]
+web-format-check:
+    npx prettier --check .
+
 # Check formatting and run ESLint (no warnings allowed)
 [group('web')]
 [working-directory('apps/web')]
-web-lint:
-    npx prettier --check .
+web-lint: web-format-check
     npx ng lint --max-warnings 0
 
 # Run unit tests (Vitest) with coverage thresholds

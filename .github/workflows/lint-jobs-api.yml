@@ -1,0 +1,45 @@
+name: Lint & Format · Jobs API
+
+on:
+  pull_request:
+    paths:
+      - apps/jobs-api/**
+      - justfile
+      - .github/actions/setup-jobs-api/**
+      - .github/workflows/lint-jobs-api.yml
+  push:
+    branches: [main]
+    paths:
+      - apps/jobs-api/**
+      - justfile
+      - .github/actions/setup-jobs-api/**
+      - .github/workflows/lint-jobs-api.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  lint:
+    name: Check formatting and analyzers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up toolchain
+        uses: ./.github/actions/setup-jobs-api
+
+      - name: Lint (dotnet format + analyzers as errors)
+        run: just api-lint

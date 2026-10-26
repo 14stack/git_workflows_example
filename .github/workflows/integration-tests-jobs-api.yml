@@ -1,0 +1,68 @@
+name: Integration Tests · Jobs API
+
+# Boots real PostgreSQL and RabbitMQ containers (Testcontainers) and exercises the API over HTTP.
+on:
+  pull_request:
+    paths:
+      - apps/jobs-api/**
+      - contracts/**
+      - justfile
+      - .github/actions/setup-jobs-api/**
+      - .github/workflows/integration-tests-jobs-api.yml
+  push:
+    branches: [main]
+    paths:
+      - apps/jobs-api/**
+      - contracts/**
+      - justfile
+      - .github/actions/setup-jobs-api/**
+      - .github/workflows/integration-tests-jobs-api.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  integration-tests:
+    name: Run integration tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up toolchain
+        uses: ./.github/actions/setup-jobs-api
+
+      - name: Run integration tests
+        run: just api-test-integration
+
+      - name: Publish test report
+        if: ${{ !cancelled() }}
+        uses: EnricoMi/publish-unit-test-result-action@7622c5bf3d112a72ab4fa3951c2aa5723d8ab92d # v2.25.0
+        with:
+          check_name: Integration Tests · Jobs API
+          trx_files: artifacts/test-results/**/*.trx
+          check_run: false
+          comment_mode: "off"
+          compare_to_earlier_commit: false
+          job_summary: true
+
+      - name: Upload test results and coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: integration-tests-jobs-api
+          path: artifacts/
+          if-no-files-found: ignore
+          retention-days: 14

@@ -1,0 +1,19 @@
+name: Set up Web toolchain
+description: Installs just and the Node.js version from apps/web/.nvmrc, then installs npm dependencies from the lockfile.
+
+runs:
+  using: composite
+  steps:
+    - name: Install just
+      uses: ./.github/actions/setup-just
+
+    - name: Install Node.js
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version-file: apps/web/.nvmrc
+        cache: npm
+        cache-dependency-path: apps/web/package-lock.json
+
+    - name: Install npm dependencies
+      shell: bash
+      run: just web-install

@@ -1,0 +1,108 @@
+# Dependabot version updates (free on private repositories).
+#
+# A 7-day cooldown means freshly published releases are only proposed once they have been
+# public for a week, which shields us from most compromised-package incidents.
+#
+# Commit prefixes drive release-please:
+#   deps:              runtime dependency → listed under "Dependencies", triggers a patch release
+#   chore(deps-dev):   tooling / test dependency → hidden, no release on its own
+#   ci(deps):          GitHub Actions → hidden, no release on its own
+version: 2
+
+updates:
+  - package-ecosystem: nuget
+    directory: /apps/jobs-api
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+    groups:
+      dotnet-testing:
+        patterns: ["xunit*", "Shouldly", "NSubstitute", "Testcontainers*", "coverlet*", "JsonSchema.Net", "Microsoft.AspNetCore.Mvc.Testing", "Microsoft.Extensions.TimeProvider.Testing"]
+      dotnet-runtime:
+        patterns: ["*"]
+
+  - package-ecosystem: uv
+    directory: /apps/ml-worker
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+      prefix-development: chore(deps-dev)
+    groups:
+      python-runtime:
+        dependency-type: production
+      python-dev:
+        dependency-type: development
+
+  - package-ecosystem: npm
+    directory: /apps/web
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+      prefix-development: chore(deps-dev)
+    groups:
+      angular:
+        patterns: ["@angular/*", "@angular-devkit/*", "angular-eslint", "typescript"]
+      npm-runtime:
+        dependency-type: production
+      npm-dev:
+        dependency-type: development
+
+  - package-ecosystem: docker
+    directories:
+      - /apps/jobs-api
+      - /apps/ml-worker
+      - /apps/web
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: deps
+    ignore:
+      # Major runtime upgrades (Python 3.14, Node 26, .NET 11…) are deliberate, not automatic.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: docker-compose
+    directory: /deploy/compose
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: chore(deps-dev)
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /.github/actions/*
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: ci(deps)
+    groups:
+      github-actions:
+        patterns: ["*"]
