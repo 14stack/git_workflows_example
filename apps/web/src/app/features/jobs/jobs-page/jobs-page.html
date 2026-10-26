@@ -1,0 +1,25 @@
+<section class="page">
+  <header class="page__header">
+    <div>
+      <h1>Training jobs</h1>
+      <p class="subtitle">
+        Each job trains a scikit-learn classifier in the ML worker and reports its hold-out scores.
+      </p>
+    </div>
+    <button mat-flat-button type="button" data-testid="new-job-button" (click)="openCreateDialog()">
+      New job
+    </button>
+  </header>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  @if (loadError()) {
+    <p class="error" role="alert" data-testid="jobs-load-error">
+      Could not reach the Jobs API. Retrying…
+    </p>
+  }
+
+  <app-job-table [jobs]="jobs()" />
+</section>

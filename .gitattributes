@@ -1,0 +1,12 @@
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
+
+# Generated files – collapse in PR diffs and exclude from language stats
+**/Migrations/*.cs linguist-generated=true
+apps/web/package-lock.json linguist-generated=true -diff
+apps/ml-worker/uv.lock linguist-generated=true -diff
+**/packages.lock.json linguist-generated=true -diff
+CHANGELOG.md linguist-generated=true

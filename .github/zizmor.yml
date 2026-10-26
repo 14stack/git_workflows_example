@@ -1,0 +1,8 @@
+# zizmor configuration (https://docs.zizmor.sh/configuration/).
+# Every exception here must say why it exists and when to revisit it.
+rules:
+  self-repository:
+    # GitHub's `uses: $/...` self-repository syntax (July 2026) is the better choice for local
+    # actions, but actionlint 1.7.12 rejects it. Switch to `$/` and remove this exception once
+    # actionlint supports it.
+    disable: true

@@ -1,0 +1,16 @@
+name: Set up Jobs API toolchain
+description: Installs just and the .NET 10 SDK, with the NuGet package cache keyed on the lockfiles.
+
+runs:
+  using: composite
+  steps:
+    - name: Install just
+      uses: ./.github/actions/setup-just
+
+    - name: Install .NET SDK
+      uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      with:
+        # Latest 10.0 feature band; apps/jobs-api/global.json allows any 10.0.x SDK.
+        dotnet-version: "10.0.x"
+        cache: true
+        cache-dependency-path: apps/jobs-api/**/packages.lock.json

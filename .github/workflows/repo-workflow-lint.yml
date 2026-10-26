@@ -1,0 +1,48 @@
+name: Repo · Workflow Lint
+
+# actionlint: syntax, expressions and shell scripts in workflows.
+# zizmor: security audit of workflows (unpinned actions, template injection, excessive permissions…).
+on:
+  pull_request:
+    paths:
+      - .github/**
+      - justfile
+  push:
+    branches: [main]
+    paths:
+      - .github/**
+      - justfile
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  workflow-lint:
+    name: Run actionlint and zizmor
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install just
+        uses: ./.github/actions/setup-just
+
+      - name: Install uv (runs zizmor)
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.11.32"
+          enable-cache: false
+
+      - name: Lint workflows
+        env:
+          # Enables zizmor's online audits (e.g. known-vulnerable or impostor action commits).
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: just lint-workflows

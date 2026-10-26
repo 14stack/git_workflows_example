@@ -1,0 +1,61 @@
+name: Release · Release Please
+
+# On every push to main, release-please keeps a "release PR" up to date (version bump +
+# CHANGELOG from conventional commits). Merging that PR tags vX.Y.Z, creates the GitHub
+# Release and triggers image publishing. See docs/release.md.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    name: Update release PR or cut release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write # create tags, releases and the release branch
+      pull-requests: write # open / update the release PR
+      issues: write # manage release labels
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      # PRs opened with GITHUB_TOKEN do not trigger other workflows, so the release PR would
+      # get no CI. A GitHub App token avoids that; without the App we fall back to GITHUB_TOKEN.
+      - name: Create GitHub App token
+        id: app-token
+        if: ${{ vars.RELEASE_APP_CLIENT_ID != '' }}
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          # Scope the token down to what release-please needs.
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: write
+
+      - name: Run release-please
+        id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish-images:
+    name: Publish images
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    permissions:
+      contents: write # attach SBOMs to the GitHub Release
+      packages: write # push images to GHCR
+    uses: ./.github/workflows/release-publish-images.yml
+    with:
+      tag: ${{ needs.release-please.outputs.tag_name }}

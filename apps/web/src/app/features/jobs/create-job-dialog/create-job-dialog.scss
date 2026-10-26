@@ -1,0 +1,20 @@
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: min(420px, 80vw);
+}
+
+.slider-label {
+  font: var(--mat-sys-body-medium);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+mat-slider {
+  width: 100%;
+}
+
+.error {
+  margin: 8px 0 0;
+  color: var(--mat-sys-error);
+}

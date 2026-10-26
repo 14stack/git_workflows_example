@@ -1,0 +1,15 @@
+# Files Semgrep should not scan. Defining this file replaces Semgrep's built-in defaults,
+# so the usual exclusions are repeated here.
+:include .gitignore
+
+node_modules/
+dist/
+build/
+.venv/
+*.min.js
+
+# Generated code and lockfiles
+apps/jobs-api/src/JobsApi/Infrastructure/Persistence/Migrations/
+**/package-lock.json
+**/uv.lock
+**/packages.lock.json

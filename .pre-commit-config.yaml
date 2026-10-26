@@ -1,0 +1,98 @@
+# Git hooks, installed with `just hooks-install` (part of `just bootstrap`).
+#
+#   pre-commit stage : file hygiene, secret scan, workflow lint, and, only for the apps
+#                      you touched, the format check + unit tests (via the root justfile)
+#   commit-msg stage : Conventional Commits, which release-please relies on
+#
+# Run everything manually with `just hooks-run`. Integration and e2e tests stay in CI.
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit]
+minimum_pre_commit_version: "4.0.0"
+# Generated files are written by their tools (dotnet, npm, uv, EF Core), never by hand.
+exclude: (^|/)(packages\.lock\.json|package-lock\.json|uv\.lock)$|/Migrations/
+
+repos:
+  # ── File hygiene ──────────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+        exclude: (^|/)tsconfig.*\.json$ # tsconfig allows comments
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=512]
+      - id: detect-private-key
+
+  # ── Secrets ───────────────────────────────────────────────────────────────
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  # ── GitHub Actions ────────────────────────────────────────────────────────
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.31.1
+    hooks:
+      - id: zizmor
+        args: [--offline] # online audits run in CI ("Repo · Workflow Lint")
+
+  # ── Commit messages ───────────────────────────────────────────────────────
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, perf, deps, revert, docs, refactor, test, build, ci, chore]
+
+  # ── Format checks + unit tests, scoped to the app that changed ────────────
+  - repo: local
+    hooks:
+      - id: jobs-api-format
+        name: Jobs API · format check
+        entry: just api-format-check
+        language: system
+        files: ^apps/jobs-api/
+        pass_filenames: false
+      - id: jobs-api-unit-tests
+        name: Jobs API · unit tests
+        entry: just api-test-unit
+        language: system
+        files: ^(apps/jobs-api/|contracts/)
+        pass_filenames: false
+
+      - id: ml-worker-format
+        name: ML Worker · format check
+        entry: just worker-format-check
+        language: system
+        files: ^apps/ml-worker/
+        pass_filenames: false
+      - id: ml-worker-unit-tests
+        name: ML Worker · unit tests
+        entry: just worker-test-unit
+        language: system
+        files: ^(apps/ml-worker/|contracts/)
+        pass_filenames: false
+
+      - id: web-format
+        name: Web · format check
+        entry: just web-format-check
+        language: system
+        files: ^apps/web/
+        pass_filenames: false
+      - id: web-unit-tests
+        name: Web · unit tests
+        entry: just web-test-unit
+        language: system
+        files: ^apps/web/src/
+        pass_filenames: false

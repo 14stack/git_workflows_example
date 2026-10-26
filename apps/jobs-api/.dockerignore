@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+**/TestResults/
+tests/
+*.user
+efbundle
+Dockerfile
+.dockerignore

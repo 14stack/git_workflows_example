@@ -1,0 +1,16 @@
+name: Set up ML worker toolchain
+description: Installs just and uv (which provisions the Python version from apps/ml-worker/.python-version), with the uv cache keyed on uv.lock.
+
+runs:
+  using: composite
+  steps:
+    - name: Install just
+      uses: ./.github/actions/setup-just
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      with:
+        version: "0.11.32"
+        working-directory: apps/ml-worker
+        enable-cache: true
+        cache-dependency-glob: apps/ml-worker/uv.lock

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/14stack/git_workflows_example/contracts/job-requested.v1.schema.json",
+  "title": "JobRequested v1",
+  "description": "Published by jobs-api to exchange 'jobs' with routing key 'job.requested' when a new ML job is created. Consumed by ml-worker from queue 'ml-worker.jobs'.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "message_id",
+    "message_type",
+    "schema_version",
+    "occurred_at",
+    "job_id",
+    "name",
+    "dataset",
+    "algorithm",
+    "test_size"
+  ],
+  "properties": {
+    "message_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "message_type": {
+      "const": "job.requested"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "job_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 100
+    },
+    "dataset": {
+      "enum": ["iris", "wine", "breast_cancer"]
+    },
+    "algorithm": {
+      "enum": ["logistic_regression", "random_forest", "svm"]
+    },
+    "test_size": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 0.5
+    }
+  }
+}
