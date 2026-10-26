@@ -14,12 +14,7 @@ import { JobsPage } from './features/jobs/jobs-page/jobs-page';
       <app-jobs-page />
     </main>
   `,
-  styles: `
-    .toolbar {
-      background: var(--mat-sys-primary);
-      color: var(--mat-sys-on-primary);
-    }
-  `,
+  styleUrl: './app.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {}
